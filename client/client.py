@@ -8,12 +8,11 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from common.protocol import encode_message, decode_message, MessageType
+from server.state import state
 import socket
 import threading
 
 # Client configuration and allowed values
-HOST = '127.0.0.1'
-PORT = 3001
 
 def receive_messages(sock):
     """
@@ -69,7 +68,7 @@ def main():
     Establish connection to the server, handle user input commands, validate inputs, and send encoded messages accordingly.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((HOST, PORT))
+        sock.connect((state.HOST, state.PORT))
         pseudo = input("Enter your username: ")
         os.system('cls' if os.name == 'nt' else 'clear')
         print(Fore.LIGHTGREEN_EX + "🎮 Welcome to the Werewolf Game!\n" + Style.RESET_ALL)
@@ -101,11 +100,11 @@ def main():
                     formatted_msg = encode_message(MessageType.ROLE.value, role)
                 elif msg.startswith("/state "):
                     # Handle state command: validate state and send STATE message if valid
-                    state = msg.split(" ", 1)[1].lower()
-                    if state not in VALID_STATES:
-                        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Invalid state: '{state}'")
+                    new_state = msg.split(" ", 1)[1].lower()
+                    if new_state not in VALID_STATES:
+                        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Invalid state: '{new_state}'")
                         continue
-                    formatted_msg = encode_message(MessageType.STATE.value, state)
+                    formatted_msg = encode_message(MessageType.STATE.value, new_state)
                 elif msg.strip() == "/start":
 					# Handle start command: send START message
                      formatted_msg = encode_message(MessageType.START.value, "")
@@ -120,4 +119,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
