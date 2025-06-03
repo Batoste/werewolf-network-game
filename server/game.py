@@ -30,6 +30,10 @@ def change_state(new_state):
     state.votes.clear()
     broadcast(None, encode_message("STATE", new_state))
     
+    if new_state == "night":
+        time.sleep(1)
+        werewolf_night_phase()
+    
 def tally_and_eliminate():
     """
     Tally votes and eliminate the player with the most votes.
@@ -38,11 +42,21 @@ def tally_and_eliminate():
     from collections import Counter
     voted_names = list(state.votes.values())
     target, _ = Counter(voted_names).most_common(1)[0]
+    
+    # Find and eliminate the target
     for conn, info in state.players.items():
         if info["name"] == target:
             state.players[conn]["alive"] = False
+            # Send death message to everyone
             broadcast(None, encode_message("KILL", target) + "\n")
+            # Send special message to the victim
+            if state.game_state == "night":
+                death_msg = encode_message("STATE", "You have been killed by wolves during the night") + "\n"
+            else:
+                death_msg = encode_message("STATE", "You have been eliminated by the village") + "\n"
+            conn.sendall(death_msg.encode())
             break
+            
     check_end_game()
     change_state("night" if state.game_state == "day" else "day")
     
@@ -53,7 +67,36 @@ def check_end_game():
     """
     werewolves = [p for p in state.players.values() if p["role"] == "werewolf" and p["alive"]]
     villagers = [p for p in state.players.values() if p["role"] != "werewolf" and p["alive"]]
+
     if not werewolves:
+        state.set_game_state("end")
         broadcast(None, encode_message("STATE", "villagers_win") + "\n")
     elif len(werewolves) >= len(villagers):
+        state.set_game_state("end")
         broadcast(None, encode_message("STATE", "werewolves_win") + "\n")
+
+def werewolf_night_phase():
+    """
+    Let werewolves communicate and vote during the night phase.
+    """
+    werewolves = [conn for conn, p in state.players.items() if p["role"] == "werewolf" and p["alive"]]
+    
+    if len(werewolves) == 1:
+        conn = werewolves[0]
+        msg = encode_message("STATE", "Vous êtes le seul loup-garou. Choisissez une victime avec /nvote <nom>") + "\n"
+        conn.sendall(msg.encode())
+    elif len(werewolves) > 1:
+        msg = encode_message("STATE", "Loups-garous, débattez avec /nmsg et votez avec /nvote <nom>") + "\n"
+        for conn in werewolves:
+            conn.sendall(msg.encode())
+
+def broadcast_werewolves(sender_conn, message):
+    """
+    Send a message to all living werewolves except the sender.
+    """
+    for conn, p in state.players.items():
+        if p["alive"] and p["role"] == "werewolf" and conn != sender_conn:
+            try:
+                conn.sendall((message if message.endswith("\n") else message + "\n").encode())
+            except:
+                pass

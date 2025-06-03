@@ -1,7 +1,8 @@
 class GameState:
     def __init__(self):
-        self.HOST = '127.0.0.1'
-        self.PORT = 3001
+        # self.HOST = '198.168.100.9'
+        self.HOST = '0.0.0.0'
+        self.PORT = 3000
         self.clients = []
         self.usernames = {}
         self.game_state = "waiting"
@@ -43,5 +44,15 @@ class GameState:
                 "role": role,
                 "alive": True
             }
+
+    def username_exists(self, username):
+        """Check if a username is already taken."""
+        return username in self.usernames.values()
+    
+    def get_conn_by_username(self, username):
+        for conn, name in self.usernames.items():
+            if name == username:
+                return conn
+        return None
 
 state = GameState()

@@ -38,7 +38,8 @@ def receive_messages(sock):
                     "STATE": Fore.GREEN,
                     "JOIN": Fore.BLUE,
                     "START": Fore.LIGHTGREEN_EX,
-                    "KILL": Fore.RED
+                    "KILL": Fore.RED,
+                    "NIGHT_MSG": Fore.LIGHTMAGENTA_EX
                 }
                 color = color_map.get(msg_type, Fore.WHITE)
                 
@@ -108,6 +109,25 @@ def main():
                 elif msg.strip() == "/start":
 					# Handle start command: send START message
                      formatted_msg = encode_message(MessageType.START.value, "")
+                elif msg.strip() == "/help":
+                    # Display help message
+                    print(f"{Fore.YELLOW}Available commands:\n"
+                          f"/vote <target> - Vote for a player\n"
+                          f"/role <role> - Set your role (villager, werewolf, etc.)\n"
+                          f"/state <state> - Change game state (day, night)\n"
+                          f"/start - Start the game\n"
+                          f"/help - Show this help message\n"
+                          f"/exit or /quit - Exit the game{Style.RESET_ALL}")
+                    continue
+                elif msg.strip() == "/restart":
+                    # Handle restart command: send RESTART message
+                    formatted_msg = encode_message(MessageType.RESTART.value, "")
+                elif msg.startswith("/nmsg "):
+                    # Handle night message command: send NIGHT_MSG message
+                    formatted_msg = encode_message(MessageType.NIGHT_MSG.value, msg.split(" ", 1)[1])
+                elif msg.startswith("/nvote "):
+                    # Handle night vote command: send NIGHT_VOTE message
+                    formatted_msg = encode_message(MessageType.NIGHT_VOTE.value, msg.split(" ", 1)[1])
                 else:
                     # Default case: treat input as a normal chat message and send MSG message
                     formatted_msg = encode_message(MessageType.MSG.value, msg)

@@ -10,6 +10,9 @@ class MessageType(Enum):
     STATE = "STATE"
     KILL = "KILL"
     START = "START"
+    RESTART = "RESTART"
+    NIGHT_MSG = "NIGHT_MSG"
+    NIGHT_VOTE = "NIGHT_VOTE"
 
 def encode_message(msg_type: str, payload: str) -> str:
     """
