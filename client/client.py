@@ -19,21 +19,48 @@ def receive_messages(sock):
     """
     Continuously listen for incoming messages from the server and display them with appropriate color coding.
     """
+    buffer = ""
+
     while True:
         try:
             data = sock.recv(1024)
             if not data:
                 break
-            msg_type, payload = decode_message(data.decode())
-            color_map = {
-                "MSG": Fore.CYAN,
-                "VOTE": Fore.YELLOW,
-                "ROLE": Fore.MAGENTA,
-                "STATE": Fore.GREEN,
-                "JOIN": Fore.BLUE
-            }
-            color = color_map.get(msg_type, Fore.WHITE)
-            print(f"\r{color}[{msg_type}]{Style.RESET_ALL} {payload}\n{Fore.BLUE}> {Style.RESET_ALL}", end="")
+            buffer += data.decode()
+            
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                msg_type, payload = decode_message(line.strip())
+                
+                color_map = {
+                    "MSG": Fore.CYAN,
+                    "VOTE": Fore.YELLOW,
+                    "ROLE": Fore.MAGENTA,
+                    "STATE": Fore.GREEN,
+                    "JOIN": Fore.BLUE,
+                    "START": Fore.LIGHTGREEN_EX,
+                    "KILL": Fore.RED
+                }
+                color = color_map.get(msg_type, Fore.WHITE)
+                
+                if msg_type == "ROLE":
+                    print(f"\n{color}You are a {payload}!{Style.RESET_ALL}")
+                elif msg_type == "STATE":
+                    if payload == "villagers_win":
+                        print(f"\n{Fore.GREEN}🎉 Villagers win!{Style.RESET_ALL}")
+                    elif payload == "werewolves_win":
+                        print(f"\n{Fore.RED}🐺 Werewolves win!{Style.RESET_ALL}")
+                    elif payload == "day":
+                        print(f"\n{color}☀️ Day has begun!{Style.RESET_ALL}")
+                    elif payload == "night":
+                        print(f"\n{color}🌙 Night has fallen...{Style.RESET_ALL}")
+                    else:
+                        print(f"\n{color}[STATE]{Style.RESET_ALL} {payload}")
+                else:
+                    print(f"\n{color}[{msg_type}]{Style.RESET_ALL} {payload}")
+                    
+                print(f"{Fore.BLUE}> {Style.RESET_ALL}", end="")
+                
         except:
             break
 
@@ -44,6 +71,8 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
         pseudo = input("Enter your username: ")
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(Fore.LIGHTGREEN_EX + "🎮 Welcome to the Werewolf Game!\n" + Style.RESET_ALL)
         join_msg = encode_message(MessageType.JOIN.value, pseudo)
         sock.sendall(join_msg.encode())
 
@@ -77,6 +106,9 @@ def main():
                         print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Invalid state: '{state}'")
                         continue
                     formatted_msg = encode_message(MessageType.STATE.value, state)
+                elif msg.strip() == "/start":
+					# Handle start command: send START message
+                     formatted_msg = encode_message(MessageType.START.value, "")
                 else:
                     # Default case: treat input as a normal chat message and send MSG message
                     formatted_msg = encode_message(MessageType.MSG.value, msg)
@@ -88,3 +120,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

@@ -9,6 +9,7 @@ class MessageType(Enum):
     ROLE = "ROLE"
     STATE = "STATE"
     KILL = "KILL"
+    START = "START"
 
 def encode_message(msg_type: str, payload: str) -> str:
     """
