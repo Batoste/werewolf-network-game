@@ -1,10 +1,13 @@
-# Standard and third-party imports
-from colorama import Fore, Style, init
-init(autoreset=True)
+# Client script for connecting to the Werewolf game server, handling user input, and displaying server messages.
 
 # Standard library imports
 import sys
 import os
+
+# Third-party imports
+from colorama import Fore, Style, init
+init(autoreset=True)
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from common.protocol import encode_message, decode_message, MessageType
@@ -76,6 +79,7 @@ def main():
         join_msg = encode_message(MessageType.JOIN.value, pseudo)
         sock.sendall(join_msg.encode())
 
+        # Define valid roles and states for input validation
         VALID_ROLES = {"villager", "werewolf", "seer", "witch", "hunter"}
         VALID_STATES = {"day", "night"}
 
@@ -88,29 +92,34 @@ def main():
                 msg = input(f"{Fore.BLUE}> {Style.RESET_ALL}")
                 if msg.lower() in ('exit', 'quit'):
                     break
+
+                # Handle vote command: extract target and send a VOTE message
                 elif msg.startswith("/vote "):
-                    # Handle vote command: extract target and send a VOTE message
                     target = msg.split(" ", 1)[1]
                     formatted_msg = encode_message(MessageType.VOTE.value, target)
+
+                # Handle role command: validate role and send ROLE message if valid
                 elif msg.startswith("/role "):
-                    # Handle role command: validate role and send ROLE message if valid
                     role = msg.split(" ", 1)[1].lower()
                     if role not in VALID_ROLES:
                         print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Invalid role: '{role}'")
                         continue
                     formatted_msg = encode_message(MessageType.ROLE.value, role)
+
+                # Handle state command: validate state and send STATE message if valid
                 elif msg.startswith("/state "):
-                    # Handle state command: validate state and send STATE message if valid
                     new_state = msg.split(" ", 1)[1].lower()
                     if new_state not in VALID_STATES:
                         print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Invalid state: '{new_state}'")
                         continue
                     formatted_msg = encode_message(MessageType.STATE.value, new_state)
+
+                # Handle start command: send START message
                 elif msg.strip() == "/start":
-					# Handle start command: send START message
-                     formatted_msg = encode_message(MessageType.START.value, "")
+                    formatted_msg = encode_message(MessageType.START.value, "")
+
+                # Display help message
                 elif msg.strip() == "/help":
-                    # Display help message
                     print(f"{Fore.YELLOW}Available commands:\n"
                           f"/vote <target> - Vote for a player\n"
                           f"/role <role> - Set your role (villager, werewolf, etc.)\n"
@@ -119,17 +128,21 @@ def main():
                           f"/help - Show this help message\n"
                           f"/exit or /quit - Exit the game{Style.RESET_ALL}")
                     continue
+
+                # Handle restart command: send RESTART message
                 elif msg.strip() == "/restart":
-                    # Handle restart command: send RESTART message
                     formatted_msg = encode_message(MessageType.RESTART.value, "")
+
+                # Handle night message command: send NIGHT_MSG message
                 elif msg.startswith("/nmsg "):
-                    # Handle night message command: send NIGHT_MSG message
                     formatted_msg = encode_message(MessageType.NIGHT_MSG.value, msg.split(" ", 1)[1])
+
+                # Handle night vote command: send NIGHT_VOTE message
                 elif msg.startswith("/nvote "):
-                    # Handle night vote command: send NIGHT_VOTE message
                     formatted_msg = encode_message(MessageType.NIGHT_VOTE.value, msg.split(" ", 1)[1])
+
+                # Default case: treat input as a normal chat message and send MSG message
                 else:
-                    # Default case: treat input as a normal chat message and send MSG message
                     formatted_msg = encode_message(MessageType.MSG.value, msg)
                 sock.sendall(formatted_msg.encode())
         except KeyboardInterrupt:

@@ -1,7 +1,10 @@
+"""Handles incoming client messages and game state transitions for the Werewolf game server."""
+
 from common.protocol import encode_message, decode_message
 from server.state import state
 from utils.network import broadcast
 from server.game import assign_roles, change_state, tally_and_eliminate
+
 
 def handle_msg(conn, addr, payload):
     """
@@ -22,6 +25,7 @@ def handle_msg(conn, addr, payload):
     print(f"[{sender}] {payload}")
     forward = encode_message("MSG", f"[{sender}] {payload}")
     broadcast(conn, forward)
+
 
 def handle_vote(conn, addr, payload):
     """
@@ -61,6 +65,7 @@ def handle_vote(conn, addr, payload):
     if all(c in state.votes for c in alive_voters):
         tally_and_eliminate()
 
+
 def handle_role(conn, addr, payload):
     """
     Handle a ROLE message: assign and notify the client of their role.
@@ -70,6 +75,7 @@ def handle_role(conn, addr, payload):
     forward = encode_message("ROLE", f"{sender} is a {payload}") + "\n"
     conn.sendall(forward.encode())
 
+
 def handle_state(conn, addr, payload):
     """
     Handle a STATE message: broadcast new game state to all clients.
@@ -77,6 +83,7 @@ def handle_state(conn, addr, payload):
     print(f"[STATE] New game state: {payload}")
     forward = encode_message("STATE", payload) + "\n"
     broadcast(None, forward)
+
 
 def handle_client(conn, addr):
     """
@@ -98,7 +105,9 @@ def handle_client(conn, addr):
             
             # Dispatch based on message type
             if msg_type == "JOIN":
-                handle_join(conn, addr, payload)
+                # Handle new client joining with username validation
+                if not handle_join(conn, addr, payload):
+                    return  # abort if join fails
             elif msg_type == "MSG":
                 handle_msg(conn, addr, payload)
             elif msg_type == "VOTE":
@@ -122,9 +131,6 @@ def handle_client(conn, addr):
                 broadcast_werewolves(conn, forward)
             elif msg_type == "NIGHT_VOTE":
                 handle_night_vote(conn, payload)
-            elif msg_type == "JOIN":
-                if not handle_join(conn, addr, payload):
-                    return  # abort if join fails
 
     except ConnectionResetError:
         # Handle abrupt client disconnects
@@ -135,11 +141,13 @@ def handle_client(conn, addr):
         state.remove_client(conn)
         print(f"[-] Disconnected {addr}")
 
+
 # Added handle_start function
 def handle_start(conn):
     """
     Start the game if enough players are connected.
     """
+    # Minimum number of players required to start the game
     MIN_PLAYERS = 3
 
     if state.game_state != "waiting":
@@ -151,6 +159,7 @@ def handle_start(conn):
 
     assign_roles()
     change_state("night")
+
 
 def handle_night_msg(conn, payload):
     """
@@ -168,6 +177,7 @@ def handle_night_msg(conn, payload):
         if p["alive"] and p["role"] == "werewolf":
             c.sendall((forward + "\n").encode())
 
+
 def handle_night_vote(conn, payload):
     """
     Handle NIGHT_VOTE from werewolves and eliminate target when all have voted.
@@ -182,15 +192,20 @@ def handle_night_vote(conn, payload):
 
     if not (state.players[conn]["alive"] and state.players[conn]["role"] == "werewolf"):
         return
-    state.add_vote(conn, payload)
+
     # Prevent self-voting
     if payload == state.get_username(conn):
         conn.sendall((encode_message("STATE", "You cannot vote for yourself.") + "\n").encode())
         return
+
+    state.add_vote(conn, payload)
+
+    # If all alive werewolves have voted, tally votes and eliminate target
     werewolves = [c for c, p in state.players.items() if p["alive"] and p["role"] == "werewolf"]
     if all(w in state.votes for w in werewolves):
         from server.game import tally_and_eliminate
         tally_and_eliminate()
+
 
 def handle_restart():
     """
@@ -201,6 +216,7 @@ def handle_restart():
     state.votes.clear()
     state.game_state = "waiting"
     broadcast(None, encode_message("STATE", "Game has been restarted") + "\n")
+
 
 def handle_join(conn, addr, payload):
     """
