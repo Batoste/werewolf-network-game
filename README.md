@@ -32,12 +32,12 @@ A multiplayer network game inspired by the classic party game "Werewolf," allowi
 
 1. Start the server:
    ```
-   python server.py
+   python server/server.py
    ```
 
 2. Run a client instance (in a new terminal window):
    ```
-   python client.py
+   python client/client.py
    ```
 
 ## Requirements
