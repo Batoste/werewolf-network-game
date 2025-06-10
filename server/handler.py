@@ -123,18 +123,18 @@ def handle_client(conn, addr):
 
 
 def handle_start(conn):
-    MIN_PLAYERS = 5  # Minimum absolu: 1 loup-garou, 1 voyante et 3 villageois
-    RECOMMENDED_PLAYERS = 6  # Recommandé: inclut aussi la sorcière
+    MIN_PLAYERS = 5  # Absolute minimum: 1 werewolf, 1 seer and 3 villagers
+    RECOMMENDED_PLAYERS = 6  # Recommended: also includes the witch
     if state.game_state != "waiting":
         conn.sendall((encode_message("STATE", "Game already started") + "\n").encode())
         return
     elif len(state.clients) < MIN_PLAYERS:
-        conn.sendall((encode_message("STATE", f"Il faut au moins {MIN_PLAYERS} joueurs pour démarrer la partie") + "\n").encode())
+        conn.sendall((encode_message("STATE", f"At least {MIN_PLAYERS} players are required to start the game") + "\n").encode())
         return
     elif len(state.clients) < RECOMMENDED_PLAYERS:
-        # On peut démarrer, mais on avertit que c'est mieux avec plus de joueurs
-        conn.sendall((encode_message("MSG", f"Note: {RECOMMENDED_PLAYERS}+ joueurs recommandés pour une partie équilibrée avec tous les rôles") + "\n").encode())
-        # On continue le démarrage
+        # We can start but warn that more players make a better game
+        conn.sendall((encode_message("MSG", f"Note: {RECOMMENDED_PLAYERS}+ players are recommended for a balanced game with all roles") + "\n").encode())
+        # Continue starting
 
     assign_roles()
     change_state("night")
@@ -155,49 +155,49 @@ def handle_night_msg(conn, payload):
 
 
 def handle_night_vote(conn, payload):
-    # Traitement spécial pour les actions de la sorcière
+    # Special handling for witch actions
     if payload.startswith("witch_"):
         if not (state.players[conn]["alive"] and state.players[conn]["role"] == "sorcière"):
             return
             
         if payload == "witch_save":
-            # La sorcière sauve la victime désignée
+            # The witch saves the chosen victim
             print(f"[WITCH] {state.get_username(conn)} saved the victim")
-            # Reset des votes des loups-garous
+            # Reset werewolf votes
             for wolf_conn in [c for c, p in state.players.items() if p["role"] == "werewolf"]:
                 if wolf_conn in state.votes:
                     state.votes.pop(wolf_conn)
             
-            # Continuer le jeu après l'action de la sorcière
+            # Continue the game after the witch's action
             print("[GAME] Witch action completed, processing night results")
             time.sleep(2)
             tally_and_eliminate()
             return
             
         elif payload == "witch_none":
-            # La sorcière ne fait rien
+            # The witch does nothing
             print(f"[WITCH] {state.get_username(conn)} did nothing")
             
-            # Continuer le jeu après l'action de la sorcière
+            # Continue the game after the witch's action
             print("[GAME] Witch action completed, processing night results")
             time.sleep(2)
             tally_and_eliminate()
             return
             
         elif payload.startswith("witch_kill:"):
-            # La sorcière tue quelqu'un
+            # The witch kills someone
             target_name = payload.split(":")[1]
             target_conn = state.get_conn_by_username(target_name)
             if target_conn and state.players[target_conn]["alive"]:
                 print(f"[WITCH] {state.get_username(conn)} killed {target_name}")
                 kill_player(target_conn)
             
-            # Continuer le jeu après l'action de la sorcière
+            # Continue the game after the witch's action
             print("[GAME] Witch action completed, processing night results")
             time.sleep(2)
             tally_and_eliminate()
             return
-              # Traitement normal pour les loups-garous
+              # Normal processing for werewolves
     target_conn = state.get_conn_by_username(payload)
     if not target_conn:
         conn.sendall((encode_message("STATE", f"Player {payload} does not exist.") + "\n").encode())
@@ -215,10 +215,10 @@ def handle_night_vote(conn, payload):
 
     werewolves = [c for c, p in state.players.items() if p["alive"] and p["role"] == "werewolf"]
     if all(w in state.votes for w in werewolves):
-        # Tous les loups-garous ont voté, vérifier s'il y a une sorcière dans la partie
+        # All werewolves have voted, check for a witch in the game
         print("[GAME] All werewolves have voted, checking for witch...")
         
-        # Vérifier s'il y a une sorcière vivante dans la partie
+        # Check if there is a living witch in the game
         witch_exists = False
         for conn, p in state.players.items():
             if p["role"] == "sorcière" and p["alive"]:
@@ -226,13 +226,13 @@ def handle_night_vote(conn, payload):
                 break
                 
         if witch_exists:
-            # Il y a une sorcière vivante, déclencher sa phase
+            # A living witch exists, trigger her phase
             print("[GAME] Living witch found, starting witch phase")
             time.sleep(2)
             from server.game import trigger_witch_phase
             trigger_witch_phase()
         else:
-            # Pas de sorcière vivante ou pas de sorcière dans la partie, continuer directement avec l'élimination
+            # No living witch, proceed directly with elimination
             print("[GAME] No living witch found, proceeding directly with night results")
             time.sleep(2)
             tally_and_eliminate()
@@ -265,13 +265,13 @@ def handle_join(conn, addr, payload):
             state.set_username(conn, payload)
             print(f"[{addr}] joined as {payload}")
             
-            # Envoyer la liste des joueurs déjà connectés au nouveau client
+            # Send the list of already connected players to the new client
             existing_players = [state.get_username(c) for c in state.clients if c != conn and state.get_username(c)]
             for player in existing_players:
                 join_msg = encode_message("JOIN", player) + "\n"
                 conn.sendall(join_msg.encode())
             
-            # Diffuser aux autres clients qu'un nouveau joueur a rejoint
+            # Broadcast to other clients that a new player has joined
             join_broadcast = encode_message("JOIN", payload)
             broadcast(conn, join_broadcast)
             return True
