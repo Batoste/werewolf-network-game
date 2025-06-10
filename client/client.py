@@ -1,3 +1,5 @@
+# Client script for connecting to the Werewolf game server, handling user input, and displaying server messages.
+
 # Standard library imports
 import os
 

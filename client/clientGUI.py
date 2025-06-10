@@ -1213,7 +1213,7 @@ class WerewolfClient(QMainWindow):
         self.night_vote_btn.setEnabled(enabled)
         self.restart_btn.setEnabled(enabled)
         self.message_input.setEnabled(enabled)
-        # self.command_input.setEnabled(enabled)
+        self.command_input.setEnabled(enabled)
 
     def add_chat_message(self, msg_type, message, color="#ffffff"):
         """Add a message to the chat with HTML formatting"""
