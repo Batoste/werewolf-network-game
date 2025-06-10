@@ -5,7 +5,7 @@ class GameState:
     def __init__(self):
         # self.HOST = '198.168.100.9'
         self.HOST = '0.0.0.0'
-        self.PORT = 3000
+        self.PORT = 3001
         self.clients = []
         self.usernames = {}
         self.game_state = "waiting"

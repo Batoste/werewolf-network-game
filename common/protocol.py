@@ -1,37 +1,65 @@
-"""This module handles message formatting and parsing for the network protocol."""
-
 from enum import Enum
 
-DELIMITER = '|'
-
-# Enum representing the different types of messages in the protocol
 class MessageType(Enum):
     JOIN = "JOIN"
     MSG = "MSG"
-    VOTE = "VOTE"
-    ROLE = "ROLE"
     STATE = "STATE"
-    KILL = "KILL"
+    ROLE = "ROLE"
     START = "START"
+    VOTE = "VOTE"
+    KILL = "KILL"
     RESTART = "RESTART"
-    NIGHT_MSG = "NIGHT_MSG"
     NIGHT_VOTE = "NIGHT_VOTE"
+    NIGHT_MSG = "NIGHT_MSG"
+    WITCH_ACTION = "WITCH_ACTION"
+    SEER_ACTION = "SEER_ACTION"
+    SEER_RESULT = "SEER_RESULT"
+    HUNTER_SHOOT = "HUNTER_SHOOT"
+    ROLE_DISTRIBUTION = "ROLE_DISTRIBUTION"
 
-# Encode a message type and payload into a formatted string for sending over the network
-def encode_message(msg_type: str, payload: str) -> str:
-    """
-    Format a message string to send over the network
-    Example: encode_message("MSG", "hello") => "MSG|hello"
-    """
-    return f"{msg_type.strip().upper()}{DELIMITER}{payload.strip()}"
+def encode_message(msg_type, payload):
+    return f"{msg_type}|{payload}\n"
 
-# Decode a received message string into its type and payload components
-def decode_message(message: str) -> tuple[str, str]:
-    """
-    Parse a received message string into type and payload
-    Example: decode_message("ROLE|werewolf") => ("ROLE", "werewolf")
-    """
-    if DELIMITER not in message:
-        return "INVALID", message
-    msg_type, payload = message.split(DELIMITER, 1)
-    return msg_type.strip().upper(), payload.strip()
+def decode_message(raw_msg):
+    try:
+        msg_type, payload = raw_msg.split("|", 1)
+        return msg_type, payload
+    except ValueError:
+        return "", raw_msg
+
+# --- AJOUT POUR LA VOYANTE ---
+def trigger_seer_phase(players):
+    for conn, info in players.items():
+        if info.get("role") == "voyante" and info.get("alive", True):
+            try:
+                msg = encode_message("SEER_ACTION", "")
+                conn.sendall(msg.encode())
+            except:
+                pass
+
+# --- AJOUT POUR LA RÉPONSE DE LA VOYANTE ---
+def handle_seer_choice(players, seer_name, target_name):
+    target_info = None
+    for name, info in players.items():
+        if name == target_name:
+            target_info = info
+            break
+    if target_info:
+        result = f"{target_name}:{target_info.get('role', '?')}"
+        for name, info in players.items():
+            if name == seer_name and info.get("role") == "voyante":
+                try:
+                    msg = encode_message("SEER_RESULT", result)
+                    info["conn"].sendall(msg.encode())
+                except:
+                    pass
+
+# --- AJOUT POUR LE CHASSEUR ---
+def handle_hunter_death(players, hunter_name):
+    for name, info in players.items():
+        if name == hunter_name and info.get("role") == "chasseur":
+            try:
+                msg = encode_message("HUNTER_SHOOT", "")
+                info["conn"].sendall(msg.encode())
+            except:
+                pass
