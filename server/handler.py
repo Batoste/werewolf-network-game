@@ -129,11 +129,11 @@ def handle_start(conn):
         conn.sendall((encode_message("STATE", "Game already started") + "\n").encode())
         return
     elif len(state.clients) < MIN_PLAYERS:
-        conn.sendall((encode_message("STATE", f"Il faut au moins {MIN_PLAYERS} joueurs pour démarrer la partie") + "\n").encode())
+        conn.sendall((encode_message("STATE", f"At least {MIN_PLAYERS} players are required to start the game") + "\n").encode())
         return
     elif len(state.clients) < RECOMMENDED_PLAYERS:
         # On peut démarrer, mais on avertit que c'est mieux avec plus de joueurs
-        conn.sendall((encode_message("MSG", f"Note: {RECOMMENDED_PLAYERS}+ joueurs recommandés pour une partie équilibrée avec tous les rôles") + "\n").encode())
+        conn.sendall((encode_message("MSG", f"Note: {RECOMMENDED_PLAYERS}+ players are recommended for a balanced game with all roles") + "\n").encode())
         # On continue le démarrage
 
     assign_roles()

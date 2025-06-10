@@ -80,11 +80,26 @@ def assign_roles():
     # Formater le message pour une meilleure lisibilité
     if "werewolf" in role_counts:
         wolf_count = role_counts["werewolf"]
-        wolf_text = f"{wolf_count} {'loup-garou' if wolf_count == 1 else 'loups-garous'}"
-        distribution_list = [wolf_text] + [item for item in distribution_list if not item.endswith("werewolf")]
-    
-    # Traduire "villager" en français
-    distribution_list = [item.replace("villager", "villageois") for item in distribution_list]
+        wolf_word = "werewolf" if wolf_count == 1 else "werewolves"
+        distribution_list = [f"{wolf_count} {wolf_word}"] + [item for item in distribution_list if not item.endswith("werewolf")]
+
+    role_translation = {
+        "voyante": ("seer", "seers"),
+        "sorcière": ("witch", "witches"),
+        "chasseur": ("hunter", "hunters"),
+        "villager": ("villager", "villagers"),
+    }
+    translated = []
+    for item in distribution_list:
+        count_str, role = item.split(" ", 1)
+        count = int(count_str)
+        if role in role_translation:
+            sing, plural = role_translation[role]
+            word = sing if count == 1 else plural
+            translated.append(f"{count} {word}")
+        else:
+            translated.append(item)
+    distribution_list = translated
     distribution_msg = ", ".join(distribution_list)
     
     broadcast(None, encode_message("ROLE_DISTRIBUTION", distribution_msg))
@@ -104,7 +119,7 @@ def change_state(new_state):
         # Envoyer un message aux joueurs normaux pour qu'ils sachent qu'ils doivent attendre
         for conn, p in state.players.items():
             if p["alive"] and p["role"] not in ["voyante", "werewolf", "sorcière", "chasseur"]:
-                msg = encode_message("MSG", "La nuit tombe... Vous vous endormez pendant que d'autres agissent dans l'ombre.") + "\n"
+                msg = encode_message("MSG", "Night falls... you fall asleep while others act in the shadows.") + "\n"
                 try:
                     conn.sendall(msg.encode())
                 except:
@@ -227,9 +242,9 @@ def check_end_game():
         broadcast(None, encode_message("STATE", "villagers_win") + "\n")
         
         # Message détaillé sur les loups-garous qui étaient dans la partie
-        win_msg = f"Les villageois ont gagné! Les loups-garous ({werewolf_names}) ont été éliminés."
+        win_msg = f"Villagers have won! The werewolves ({werewolf_names}) were eliminated."
         if special_roles:
-            win_msg += f"\nRôles spéciaux: {special_roles}"
+            win_msg += f"\nSpecial roles: {special_roles}"
         broadcast(None, encode_message("MSG", win_msg) + "\n")
         
     elif len(werewolves) >= len(villagers):
@@ -237,9 +252,9 @@ def check_end_game():
         broadcast(None, encode_message("STATE", "werewolves_win") + "\n")
         
         # Message détaillé sur les loups-garous qui ont gagné
-        win_msg = f"Les loups-garous ({werewolf_names}) ont gagné! Ils sont désormais majoritaires."
+        win_msg = f"Werewolves ({werewolf_names}) have won! They now outnumber the villagers."
         if special_roles:
-            win_msg += f"\nRôles spéciaux qui n'ont pas réussi à les arrêter: {special_roles}"
+            win_msg += f"\nSpecial roles that failed to stop them: {special_roles}"
         broadcast(None, encode_message("MSG", win_msg) + "\n")
 
 
@@ -258,7 +273,7 @@ def werewolf_night_phase():
     
     if len(werewolves) == 1:
         conn = werewolves[0]
-        msg = encode_message("STATE", "Vous êtes le seul loup-garou. Choisissez une victime avec /nvote <nom>") + "\n"
+        msg = encode_message("STATE", "You are the only werewolf. Choose a victim with /nvote <name>") + "\n"
         try:
             conn.sendall(msg.encode())
             # Pause courte pour s'assurer que les messages sont envoyés dans le bon ordre
@@ -270,7 +285,7 @@ def werewolf_night_phase():
         except Exception as e:
             print(f"[ERROR] Failed to send werewolf action: {e}")
     elif len(werewolves) > 1:
-        msg = encode_message("STATE", "Loups-garous, débattez avec /nmsg et votez avec /nvote <nom>") + "\n"
+        msg = encode_message("STATE", "Werewolves, chat with /nmsg and vote with /nvote <name>") + "\n"
         for conn in werewolves:
             try:
                 conn.sendall(msg.encode())
