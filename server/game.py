@@ -3,7 +3,7 @@
 import random
 import time
 from collections import Counter
-from common.protocol import encode_message
+from common.protocol import encode_message, trigger_seer_phase, handle_hunter_death
 from server.state import state
 from utils.network import broadcast
 
@@ -145,30 +145,6 @@ def change_state(new_state):
             print("[GAME] No living seer, skipping to werewolf phase")
             time.sleep(2)
             werewolf_night_phase()
-            
-        # The following phases trigger after the seer action completes
-        # in handle_seer_choice
-
-
-def trigger_seer_phase():
-    for conn, p in state.players.items():
-        if p["role"] == "voyante" and p["alive"]:
-            msg = encode_message("SEER_ACTION", "") + "\n"
-            conn.sendall(msg.encode())
-
-
-def handle_seer_choice(conn, target_name):
-    for p in state.players.values():
-        if p["name"] == target_name:
-            result = f"{target_name}:{p['role']}"
-            conn.sendall(encode_message("SEER_RESULT", result).encode())
-            print(f"[GAME] Seer {state.usernames[conn]} examined {target_name} (role: {p['role']})")
-            
-            # Now that the seer finished, trigger the werewolf action
-            time.sleep(2)  # Small delay so the client has time to process the response
-            print("[GAME] Seer action completed, starting werewolf phase")
-            werewolf_night_phase()
-            break
 
 
 def trigger_witch_phase():
@@ -216,13 +192,6 @@ def kill_player(conn):
 
     if info["role"] == "chasseur":
         handle_hunter_death(conn)
-
-
-def handle_hunter_death(conn):
-    """
-    Allows the hunter to shoot someone upon death.
-    """
-    conn.sendall(encode_message("HUNTER_SHOOT", "") + "\n")
 
 
 def check_end_game():

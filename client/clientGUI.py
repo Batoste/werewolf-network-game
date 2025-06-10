@@ -110,7 +110,7 @@ class WerewolfClient(QMainWindow):
         main_splitter.addWidget(center_widget)
         
         # Extended command area at the bottom
-        self.create_command_panel(main_layout)
+        # self.create_command_panel(main_layout)
         
         # Set relative panel sizes
         main_splitter.setSizes([300, 800])
@@ -1085,7 +1085,7 @@ class WerewolfClient(QMainWindow):
         self.night_vote_btn.setEnabled(enabled)
         self.restart_btn.setEnabled(enabled)
         self.message_input.setEnabled(enabled)
-        self.command_input.setEnabled(enabled)
+        # self.command_input.setEnabled(enabled)
 
     def add_chat_message(self, msg_type, message, color="#ffffff"):
         """Add a message to the chat with HTML formatting"""
