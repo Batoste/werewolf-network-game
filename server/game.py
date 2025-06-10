@@ -44,13 +44,13 @@ def assign_roles():
     
     # Add special roles based on player count
     if num_players >= 5:
-        roles.append("voyante")  # Include the seer starting at 5 players
+        roles.append("seer")  # Include the seer starting at 5 players
     
     if num_players >= 6:
-        roles.append("sorcière")  # Add the witch starting at 6 players
+        roles.append("witch")  # Add the witch starting at 6 players
     
     if num_players >= 7:
-        roles.append("chasseur")  # Add the hunter starting at 7 players
+        roles.append("hunter")  # Add the hunter starting at 7 players
     
     # Fill with villagers
     roles += ["villager"] * max(0, num_players - len(roles))
@@ -84,9 +84,9 @@ def assign_roles():
         distribution_list = [f"{wolf_count} {wolf_word}"] + [item for item in distribution_list if not item.endswith("werewolf")]
 
     role_translation = {
-        "voyante": ("seer", "seers"),
-        "sorcière": ("witch", "witches"),
-        "chasseur": ("hunter", "hunters"),
+        "seer": ("seer", "seers"),
+        "witch": ("witch", "witches"),
+        "hunter": ("hunter", "hunters"),
         "villager": ("villager", "villagers"),
     }
     translated = []
@@ -118,7 +118,7 @@ def change_state(new_state):
     if new_state == "night":
         # Notify normal players to wait during the night
         for conn, p in state.players.items():
-            if p["alive"] and p["role"] not in ["voyante", "werewolf", "sorcière", "chasseur"]:
+            if p["alive"] and p["role"] not in ["seer", "werewolf", "witch", "hunter"]:
                 msg = encode_message("MSG", "Night falls... you fall asleep while others act in the shadows.") + "\n"
                 try:
                     conn.sendall(msg.encode())
@@ -134,7 +134,7 @@ def change_state(new_state):
         # Check if a living seer exists
         seer_exists = False
         for conn, p in state.players.items():
-            if p["role"] == "voyante" and p["alive"]:
+            if p["role"] == "seer" and p["alive"]:
                 seer_exists = True
                 break
                 
@@ -152,7 +152,7 @@ def change_state(new_state):
 
 def trigger_seer_phase():
     for conn, p in state.players.items():
-        if p["role"] == "voyante" and p["alive"]:
+        if p["role"] == "seer" and p["alive"]:
             msg = encode_message("SEER_ACTION", "") + "\n"
             conn.sendall(msg.encode())
 
@@ -173,7 +173,7 @@ def handle_seer_choice(conn, target_name):
 
 def trigger_witch_phase():
     for conn, info in state.players.items():
-        if info["role"] == "sorcière" and info["alive"]:
+        if info["role"] == "witch" and info["alive"]:
             try:
                 msg = encode_message("WITCH_ACTION", "") + "\n"
                 conn.sendall(msg.encode())
@@ -214,7 +214,7 @@ def kill_player(conn):
         death_msg = encode_message("STATE", "You have been eliminated by the village") + "\n"
     conn.sendall(death_msg.encode())
 
-    if info["role"] == "chasseur":
+    if info["role"] == "hunter":
         handle_hunter_death(conn)
 
 

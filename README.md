@@ -37,7 +37,7 @@ A multiplayer network game inspired by the classic party game "Werewolf," allowi
 
 2. Run a client instance (in a new terminal window):
    ```
-   python client/client.py
+   python client/GUI/client.py
    ```
 
 ## Requirements

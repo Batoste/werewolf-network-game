@@ -30,7 +30,7 @@ def decode_message(raw_msg):
 # --- ADDED FOR THE SEER ---
 def trigger_seer_phase(players):
     for conn, info in players.items():
-        if info.get("role") == "voyante" and info.get("alive", True):
+        if info.get("role") == "seer" and info.get("alive", True):
             try:
                 msg = encode_message("SEER_ACTION", "")
                 conn.sendall(msg.encode())
@@ -47,7 +47,7 @@ def handle_seer_choice(players, seer_name, target_name):
     if target_info:
         result = f"{target_name}:{target_info.get('role', '?')}"
         for name, info in players.items():
-            if name == seer_name and info.get("role") == "voyante":
+            if name == seer_name and info.get("role") == "seer":
                 try:
                     msg = encode_message("SEER_RESULT", result)
                     info["conn"].sendall(msg.encode())
@@ -57,7 +57,7 @@ def handle_seer_choice(players, seer_name, target_name):
 # --- ADDED FOR THE HUNTER ---
 def handle_hunter_death(players, hunter_name):
     for name, info in players.items():
-        if name == hunter_name and info.get("role") == "chasseur":
+        if name == hunter_name and info.get("role") == "hunter":
             try:
                 msg = encode_message("HUNTER_SHOOT", "")
                 info["conn"].sendall(msg.encode())
