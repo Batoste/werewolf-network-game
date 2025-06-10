@@ -27,7 +27,7 @@ def decode_message(raw_msg):
     except ValueError:
         return "", raw_msg
 
-# --- AJOUT POUR LA VOYANTE ---
+# --- ADDED FOR THE SEER ---
 def trigger_seer_phase(players):
     for conn, info in players.items():
         if info.get("role") == "voyante" and info.get("alive", True):
@@ -37,7 +37,7 @@ def trigger_seer_phase(players):
             except:
                 pass
 
-# --- AJOUT POUR LA RÉPONSE DE LA VOYANTE ---
+# --- ADDED FOR THE SEER RESPONSE ---
 def handle_seer_choice(players, seer_name, target_name):
     target_info = None
     for name, info in players.items():
@@ -54,7 +54,7 @@ def handle_seer_choice(players, seer_name, target_name):
                 except:
                     pass
 
-# --- AJOUT POUR LE CHASSEUR ---
+# --- ADDED FOR THE HUNTER ---
 def handle_hunter_death(players, hunter_name):
     for name, info in players.items():
         if name == hunter_name and info.get("role") == "chasseur":

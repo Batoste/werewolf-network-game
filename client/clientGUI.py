@@ -32,7 +32,7 @@ class NetworkWorker(QObject):
             self.connected.emit()
             return True
         except Exception as e:
-            print(f"Erreur connexion: {e}")
+            print(f"Connection error: {e}")
             return False
 
     def listen_for_messages(self):
@@ -48,7 +48,7 @@ class NetworkWorker(QObject):
                         msg_type, payload = decode_message(line.strip())
                         self.message_received.emit(msg_type, payload)
             except Exception as e:
-                print(f"Erreur réception: {e}")
+                print(f"Receive error: {e}")
                 break
         self.connection_lost.emit()
 
@@ -58,14 +58,14 @@ class NetworkWorker(QObject):
                 formatted_msg = encode_message(msg_type, payload)
                 self.sock.sendall(formatted_msg.encode())
                 
-                # Enregistrer certaines commandes dans l'historique
+                # Record certain commands in the history
                 if msg_type in [MessageType.VOTE.value, MessageType.NIGHT_VOTE.value, MessageType.START.value, MessageType.RESTART.value]:
                     cmd = f"/{msg_type.lower()}"
                     if payload:
                         cmd += f" {payload}"
                     self.message_received.emit("COMMANDE", f"Commande envoyée: {cmd}")
             except Exception as e:
-                print(f"Erreur envoi: {e}")
+                print(f"Send error: {e}")
 
     def disconnect(self):
         self.running = False
@@ -92,27 +92,27 @@ class WerewolfClient(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         self.create_connection_panel(main_layout)
         
-        # Splitter principal pour permettre à l'utilisateur d'ajuster les tailles
+        # Main splitter allowing the user to adjust panel sizes
         main_splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(main_splitter)
         
-        # Panel gauche pour les informations et liste des joueurs
+        # Left panel for game information and player list
         left_widget = QWidget()
         left_widget.setMinimumWidth(250)
         left_layout = QVBoxLayout(left_widget)
         self.create_game_info_panel(left_layout)
         main_splitter.addWidget(left_widget)
         
-        # Panel central pour le chat
+        # Center panel for chat
         center_widget = QWidget()
         center_layout = QVBoxLayout(center_widget)
         self.create_chat_panel(center_layout)
         main_splitter.addWidget(center_widget)
         
-        # Zone de commande étendue en bas
+        # Extended command area at the bottom
         self.create_command_panel(main_layout)
         
-        # Définir les tailles relatives des panneaux
+        # Set relative panel sizes
         main_splitter.setSizes([300, 800])
         
         self.set_game_controls_enabled(False)
@@ -146,7 +146,7 @@ class WerewolfClient(QMainWindow):
         self.set_game_controls_enabled(True)
         self.add_chat_message("SYSTEM", "Connected to server successfully!", "#2ed573")
         
-        # Ajouter le joueur local à sa propre liste
+        # Add the local player to the list
         if self.username and self.username not in [self.players_list_widget.item(i).text() for i in range(self.players_list_widget.count())]:
             self.players_list_widget.addItem(self.username)
 
@@ -212,21 +212,21 @@ class WerewolfClient(QMainWindow):
             elif payload == "day":
                 self.state_label.setText("Day")
                 self.add_chat_message("STATE", "☀️ Day breaks! Discuss and vote to eliminate a suspect.", color)
-                # Mettre à jour l'interface pour le jour (en option)
+                # Update the interface for day (optional)
                 # self.setStyleSheet("background-color: #87CEEB;") 
                 
             elif payload == "night":
                 self.state_label.setText("Night")
                 self.add_chat_message("STATE", "🌙 Night falls... Special roles act in the shadows.", color)
-                # Mettre à jour l'interface pour la nuit (en option)
+                # Update the interface for night (optional)
                 # self.setStyleSheet("background-color: #2C3E50;")
                 
             else:
                 self.state_label.setText(payload)
                 self.add_chat_message("STATE", payload, color)
                 
-            # Mise à jour des contrôles uniquement
-            # Les popups sont déclenchés par les messages spécifiques du serveur
+            # Update controls only
+            # Popups are triggered by specific server messages
             self.update_buttons_visibility()
 
         elif msg_type == "WITCH_ACTION":
@@ -239,7 +239,7 @@ class WerewolfClient(QMainWindow):
             self.show_night_vote_dialog()
 
         elif msg_type == "SEER_RESULT":
-            # Format: nom_joueur:role
+            # Format: player_name:role
             try:
                 name, role = payload.split(":")
                 self.add_chat_message("SEER", f"💫 You discovered that {name} is a {role}!", "#9c88ff")
@@ -247,7 +247,7 @@ class WerewolfClient(QMainWindow):
                 QMessageBox.information(self, "Seer's Vision", f"You discovered that {name} is a {role}!")
             except Exception as e:
                 print(f"Erreur traitement SEER_RESULT: {e}, payload: {payload}")
-                self.add_chat_message("VOYANTE", f"Résultat: {payload}", "#9c88ff")
+                self.add_chat_message("VOYANTE", f"Result: {payload}", "#9c88ff")
 
         elif msg_type == "HUNTER_SHOOT":
             self.show_hunter_dialog()
@@ -266,19 +266,19 @@ class WerewolfClient(QMainWindow):
                                     f"Here is the role distribution for this game:\n\n{payload}")
                 
         elif msg_type == "KILL":
-            # Marquer le joueur comme mort dans la liste
+            # Mark the player as dead in the list
             self.add_chat_message("DEATH", f"☠️ {payload} was eliminated!", "#ff3838")
             
-            # Actualiser l'état du joueur dans la liste (en italique ou barré)
+            # Update the player's status in the list (italic or strikethrough)
             for i in range(self.players_list_widget.count()):
                 if self.players_list_widget.item(i).text() == payload or self.players_list_widget.item(i).text().startswith(payload + " "):
                     item = self.players_list_widget.item(i)
-                    # Ajouter un indicateur clair au texte
+                    # Add a clear indicator to the text
                     current_text = item.text()
                     if " (mort)" not in current_text:
                         item.setText(f"{payload} (mort)")
                     
-                    # Appliquer aussi un style visuel
+                    # Also apply a visual style
                     font = item.font()
                     font.setStrikeOut(True)
                     font.setItalic(True)
@@ -286,7 +286,7 @@ class WerewolfClient(QMainWindow):
                     item.setForeground(QColor("#ff3838"))
                     break
                     
-            # Vérifier si c'est nous qui sommes morts
+            # Check if it is us who died
             if payload == self.username:
                 if self.player_role == "chasseur":
                     QMessageBox.information(self, "You are dead",
@@ -296,11 +296,11 @@ class WerewolfClient(QMainWindow):
                                           "You have been eliminated! You can no longer vote or speak but you may continue to observe the game.")
                 
         elif msg_type == "MSG":
-            # Traiter les messages de chat
+            # Handle chat messages
             self.add_chat_message("MSG", payload, color)
             
         elif msg_type == "NIGHT_MSG":
-            # Messages des loups-garous pendant la nuit
+            # Werewolf messages during the night
             if self.player_role == "werewolf":
                 self.add_chat_message("LOUPS", f"🐺 {payload}", "#ff6b9d")
             
@@ -308,14 +308,14 @@ class WerewolfClient(QMainWindow):
             self.add_chat_message(msg_type, payload, color)
 
     def update_buttons_visibility(self):
-        is_alive = True  # Amélioration possible plus tard
+        is_alive = True  # Could be improved later
         self.vote_btn.setVisible(self.game_state == "day" and is_alive)
         self.night_vote_btn.setVisible(self.game_state == "night" and self.player_role == "werewolf" and is_alive)
 
     def check_auto_popups(self):
-        """Affiche automatiquement les popups appropriés selon l'état du jeu et le rôle"""
-        # Les popups sont maintenant gérés directement par les signaux du serveur
-        # et ne s'affichent que lorsqu'on reçoit les signaux spécifiques
+        """Automatically display appropriate popups based on game state and role"""
+        # Popups are now managed directly by server signals
+        # and are only shown when specific signals are received
         # SEER_ACTION, WITCH_ACTION, HUNTER_SHOOT, etc.
         pass
 
@@ -380,7 +380,7 @@ class WerewolfClient(QMainWindow):
         self.restart_btn.clicked.connect(self.restart_game)
         self.restart_btn.setStyleSheet("background-color: #ff7f50; font-weight: bold;")
         
-        # Ajout des boutons au layout
+        # Add the buttons to the layout
         action_layout.addWidget(self.start_btn)
         action_layout.addWidget(self.restart_btn)
         info_layout.addWidget(action_box)
@@ -400,32 +400,32 @@ class WerewolfClient(QMainWindow):
         player_info_label = QLabel("Cliquez-droit sur un joueur pour agir")
         player_info_label.setStyleSheet("font-style: italic; color: #a4b0be; font-size: 11px;")
         
-        # Ajout des widgets au layout
+        # Add the widgets to the layout
         player_layout.addWidget(self.players_list_widget)
         player_layout.addWidget(player_info_label)
         
-        # Ajout du groupe de joueurs au layout principal
+        # Add the player group to the main layout
         info_layout.addWidget(player_box)
         
-        # Ajout final au layout parent
+        # Add final element to the parent layout
         parent_layout.addWidget(info_group)
 
     def create_chat_panel(self, parent_layout):
-        # Zone principale de chat avec onglets
+        # Main chat area with tabs
         chat_tabs = QTabWidget()
         chat_tabs.setStyleSheet("QTabBar::tab:selected {background-color: #3742fa; color: white; font-weight: bold;}")
         
-        # Onglet de chat général
+        # Main chat tab
         chat_widget = QWidget()
         chat_layout = QVBoxLayout(chat_widget)
         
-        # En-tête avec titre et boutons d'action
+        # Header with title and action buttons
         chat_header = QHBoxLayout()
         chat_title = QLabel("💬 Messages du jeu")
         chat_title.setStyleSheet("font-size: 14px; font-weight: bold;")
         chat_header.addWidget(chat_title)
         
-        # Boutons d'action rapide pour le chat
+        # Quick action buttons for chat
         chat_header_btn_layout = QHBoxLayout()
         chat_header_btn_layout.addStretch()
         
@@ -438,7 +438,7 @@ class WerewolfClient(QMainWindow):
         chat_header.addLayout(chat_header_btn_layout)
         chat_layout.addLayout(chat_header)
         
-        # Zone d'affichage du chat avec formatage HTML
+        # Chat display area with HTML formatting
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
         self.chat_display.setStyleSheet("background-color: #2f3542; color: #f1f2f6; border-radius: 5px;")
@@ -446,7 +446,7 @@ class WerewolfClient(QMainWindow):
         self.chat_display.document().setDefaultStyleSheet("a {color: #54a0ff;}")
         chat_layout.addWidget(self.chat_display)
         
-        # Zone d'entrée pour le chat avec boutons d'action
+        # Chat input area with action buttons
         input_layout = QHBoxLayout()
         
         self.message_input = QLineEdit()
@@ -454,7 +454,7 @@ class WerewolfClient(QMainWindow):
         self.message_input.returnPressed.connect(self.send_chat_message)
         self.message_input.setStyleSheet("background-color: #2f3542; color: #f1f2f6; border-radius: 5px; padding: 5px;")
         
-        # Boutons d'action rapide selon le contexte
+        # Contextual quick action buttons
         self.vote_btn = QPushButton("☀️ Vote")
         self.vote_btn.setToolTip("Day vote (eliminate a player)")
         self.vote_btn.clicked.connect(self.show_vote_dialog)
@@ -469,7 +469,7 @@ class WerewolfClient(QMainWindow):
         send_btn.clicked.connect(self.send_chat_message)
         send_btn.setStyleSheet("background-color: #2ed573;")
         
-        # Ajout des composants au layout
+        # Add components to the layout
         input_layout.addWidget(self.message_input, 7)
         input_layout.addWidget(self.vote_btn, 1)
         input_layout.addWidget(self.night_vote_btn, 1)
@@ -477,10 +477,10 @@ class WerewolfClient(QMainWindow):
         
         chat_layout.addLayout(input_layout)
         
-        # Ajout de l'onglet principal
+        # Add the main tab
         chat_tabs.addTab(chat_widget, "Chat général")
         
-        # Onglet journal avec historique des événements
+        # Log tab with event history
         log_widget = QWidget()
         log_layout = QVBoxLayout(log_widget)
         
@@ -493,7 +493,7 @@ class WerewolfClient(QMainWindow):
         self.log_display.setStyleSheet("background-color: #2f3542; color: #f1f2f6; border-radius: 5px;")
         log_layout.addWidget(self.log_display)
         
-        # Filtres pour le journal
+        # Log filters
         filter_layout = QHBoxLayout()
         filter_layout.addWidget(QLabel("Filter:"))
         
@@ -514,7 +514,7 @@ class WerewolfClient(QMainWindow):
         # Ajout de l'onglet journal
         chat_tabs.addTab(log_widget, "Log")
         
-        # Onglet règles du jeu pour référence rapide
+        # Game rules tab for quick reference
         rules_widget = QWidget()
         rules_layout = QVBoxLayout(rules_widget)
         
@@ -596,13 +596,13 @@ class WerewolfClient(QMainWindow):
         """)
         rules_layout.addWidget(rules_text)
         
-        # Ajout de l'onglet règles
+        # Add the rules tab
         chat_tabs.addTab(rules_widget, "Rules")
         
         # Ajout des onglets au layout principal
         parent_layout.addWidget(chat_tabs, 1)
 
-    # La fonction create_actions_panel n'est plus nécessaire puisqu'on a intégré
+    # The create_actions_panel function is no longer needed puisqu'on a intégré
     # les actions dans le panel d'information et dans la zone de chat
 
     def create_command_panel(self, parent_layout):
@@ -611,7 +611,7 @@ class WerewolfClient(QMainWindow):
         cmd_group.setStyleSheet("QGroupBox { font-weight: bold; font-size: 13px; }")
         cmd_group_layout = QVBoxLayout(cmd_group)
         
-        # Affichage des commandes précédentes avec design amélioré
+        # Display previous commands with an improved design
         history_label = QLabel("Command history:")
         history_label.setStyleSheet("font-weight: bold; color: #dfe4ea;")
         cmd_group_layout.addWidget(history_label)
@@ -623,7 +623,7 @@ class WerewolfClient(QMainWindow):
         self.cmd_history.setPlaceholderText("Executed commands will appear here...")
         cmd_group_layout.addWidget(self.cmd_history)
         
-        # Zone de saisie des commandes avec style console
+        # Command input area styled like a console
         cmd_input_layout = QHBoxLayout()
         prompt_label = QLabel(">")
         prompt_label.setStyleSheet("color: #2ed573; font-weight: bold; font-size: 14px; font-family: 'Consolas', monospace;")
@@ -635,7 +635,7 @@ class WerewolfClient(QMainWindow):
         self.command_input.returnPressed.connect(self.process_command)
         cmd_input_layout.addWidget(self.command_input)
         
-        # Bouton d'exécution
+        # Run button
         exec_btn = QPushButton("▶️ Run")
         exec_btn.clicked.connect(self.process_command)
         exec_btn.setStyleSheet("background-color: #2ed573; font-weight: bold;")
@@ -643,10 +643,10 @@ class WerewolfClient(QMainWindow):
         
         cmd_group_layout.addLayout(cmd_input_layout)
         
-        # Layout de commandes rapides en grid pour plus de commandes
+        # Grid layout of quick commands for more actions
         command_grid_layout = QGridLayout()
         
-        # Commandes de jeu
+        # Game commands
         cmd_start = QPushButton("/start")
         cmd_start.clicked.connect(lambda: self.execute_quick_command("/start"))
         cmd_start.setStyleSheet("background-color: #2ed573;")
@@ -657,7 +657,7 @@ class WerewolfClient(QMainWindow):
         cmd_restart.setStyleSheet("background-color: #ff7f50;")
         command_grid_layout.addWidget(cmd_restart, 0, 1)
         
-        # Commandes de vote
+        # Vote commands
         cmd_vote = QPushButton("/vote")
         cmd_vote.clicked.connect(lambda: self.show_vote_dialog())
         cmd_vote.setStyleSheet("background-color: #ffa502;")
@@ -668,13 +668,13 @@ class WerewolfClient(QMainWindow):
         cmd_nvote.setStyleSheet("background-color: #9c88ff;")
         command_grid_layout.addWidget(cmd_nvote, 0, 3)
         
-        # Commandes de message nocturne
+        # Night message commands
         cmd_nmsg = QPushButton("/nmsg")
         cmd_nmsg.clicked.connect(lambda: self.command_input.setText("/nmsg "))
         cmd_nmsg.setStyleSheet("background-color: #ff6b9d;")
         command_grid_layout.addWidget(cmd_nmsg, 1, 0)
         
-        # Commandes pour les rôles spéciaux
+        # Commands for special roles
         cmd_seer = QPushButton("Seer")
         cmd_seer.clicked.connect(lambda: self.show_seer_dialog())
         cmd_seer.setStyleSheet("background-color: #9c88ff;")
@@ -690,10 +690,10 @@ class WerewolfClient(QMainWindow):
         cmd_help.setStyleSheet("background-color: #54a0ff;")
         command_grid_layout.addWidget(cmd_help, 1, 3)
         
-        # Ajout du layout de commandes rapides
+        # Add the quick commands layout
         cmd_group_layout.addLayout(command_grid_layout)
         
-        # Ajouter la liste des commandes disponibles
+        # Add the list of available commands
         help_layout = QHBoxLayout()
         help_layout.addWidget(QLabel("💡 Commands:"))
         help_text = QLabel("/vote, /nvote, /start, /restart, /nmsg, /help")
@@ -702,7 +702,7 @@ class WerewolfClient(QMainWindow):
         help_layout.addStretch()
         cmd_group_layout.addLayout(help_layout)
         
-        # Ajouter le groupe de commandes au layout principal
+        # Add the command group to the main layout
         parent_layout.addWidget(cmd_group)
         
     def execute_quick_command(self, cmd):
@@ -718,7 +718,7 @@ class WerewolfClient(QMainWindow):
             
         player_name = selected_player.text()
         
-        # Actions en fonction de l'état du jeu et du rôle
+        # Actions based on game state and role
         if self.game_state == "day":
             vote_action = menu.addAction(f"🗳️ Vote against {player_name}")
             vote_action.triggered.connect(lambda: self.vote_for_player(player_name))
@@ -740,11 +740,11 @@ class WerewolfClient(QMainWindow):
                 shoot_action = menu.addAction(f"🔫 Shoot {player_name}")
                 shoot_action.triggered.connect(lambda: self.hunter_shoot_player(player_name))
             
-        # Action de message privé (fonctionnalité à implémenter plus tard)
+        # Private message action (feature to implement later)
         whisper_action = menu.addAction(f"💬 Private message to {player_name}")
         whisper_action.triggered.connect(lambda: self.whisper_to_player(player_name))
         
-        # Afficher le menu
+        # Show the menu
         menu.exec_(self.players_list_widget.mapToGlobal(position))
     
     def vote_for_player(self, player_name):
@@ -768,7 +768,7 @@ class WerewolfClient(QMainWindow):
     def seer_examine_player(self, player_name):
         self.network_worker.send_message(MessageType.SEER_ACTION.value, player_name)
         self.add_chat_message("SEER", f"You examine {player_name}...", "#9c88ff")
-        # On attend la réponse du serveur avec SEER_RESULT - voir handle_server_message
+        # Waiting for server response with SEER_RESULT - see handle_server_message
     
     def witch_kill_player(self, player_name):
         self.network_worker.send_message(MessageType.NIGHT_VOTE.value, f"witch_kill:{player_name}")
@@ -779,7 +779,7 @@ class WerewolfClient(QMainWindow):
         self.add_chat_message("HUNTER", f"You shot {player_name}", "#ff9f43")
     
     def whisper_to_player(self, player_name):
-        # Fonctionnalité à implémenter plus tard
+        # Feature to implement later
         self.add_chat_message("SYSTEM", f"Private messages are not implemented yet", "#ff6b6b")
     
     def show_vote_dialog(self):
@@ -797,16 +797,16 @@ class WerewolfClient(QMainWindow):
             self.vote_for_player(target)
 
     def show_night_action_dialog(self):
-        # Ce dialogue est déclenché manuellement par le bouton "Action nocturne" ou le menu
-        # Mais normalement, les actions sont déclenchées automatiquement par les messages du serveur
+        # This dialog is triggered manually by the "Night action" button or the menu
+        # But normally actions are triggered automatically by server messages
         
-        # Vérifier si c'est actuellement la nuit
+        # Check if it is currently night
         if self.game_state != "night":
             QMessageBox.information(self, "Night action",
                                    "Special actions can only be performed at night.")
             return
         
-        # Afficher le dialogue approprié selon le rôle
+        # Show the appropriate dialog according to the role
         if self.player_role == "werewolf":
             self.show_night_vote_dialog()
         elif self.player_role == "voyante":
@@ -820,14 +820,14 @@ class WerewolfClient(QMainWindow):
                                    "You have no special action tonight. Wait for the other players to finish their actions.")
 
     def show_night_vote_dialog(self):
-        # Récupérer la liste des joueurs vivants depuis le widget de liste
+        # Retrieve the list of living players from the list widget
         players = []
         
         # Debug info
         print(f"DEBUG - Construire la liste des joueurs pour le vote de nuit")
         print(f"DEBUG - Nombre total de joueurs: {self.players_list_widget.count()}")
         
-        # Exclure le joueur lui-même et les joueurs marqués comme morts
+        # Exclude the player themselves and those marked as dead
         for i in range(self.players_list_widget.count()):
             item = self.players_list_widget.item(i)
             if item:
@@ -842,12 +842,12 @@ class WerewolfClient(QMainWindow):
                 else:
                     print(f"DEBUG - Exclu de la liste: '{player_name}'")
         
-        # Vérifier si la liste n'est pas vide
+        # Check that the list is not empty
         if not players:
             print("DEBUG - Liste des joueurs vide pour le vote nocturne!")
             QMessageBox.warning(self, "Unable to vote", "No players available for voting.")
             
-            # Afficher tous les joueurs pour le débogage
+            # Display all players for debugging
             all_players = [self.players_list_widget.item(i).text() for i in range(self.players_list_widget.count())]
             print(f"DEBUG - Tous les joueurs: {all_players}")
             return
@@ -864,9 +864,9 @@ class WerewolfClient(QMainWindow):
         dialog.setWindowTitle("Witch Actions")
         layout = QVBoxLayout(dialog)
         
-        # Image ou icône pour la sorcière
+        # Image or icon for the witch
         witch_icon_label = QLabel()
-        witch_icon = QPixmap("witch_icon.png") # Vous pouvez ajouter une image plus tard
+        witch_icon = QPixmap("witch_icon.png") # You can add an image later
         if not witch_icon.isNull():
             witch_icon_label.setPixmap(witch_icon.scaled(64, 64, Qt.KeepAspectRatio))
         else:
@@ -877,7 +877,7 @@ class WerewolfClient(QMainWindow):
         
         layout.addWidget(QLabel("You are the witch. What do you want to do?"))
         
-        # Options de la sorcière
+        # Witch options
         no_action_btn = QPushButton("Do nothing")
         save_btn = QPushButton("Save the victim")
         kill_btn = QPushButton("Poison a player")
@@ -904,14 +904,14 @@ class WerewolfClient(QMainWindow):
     def witch_select_target(self, parent_dialog):
         parent_dialog.accept()
         
-        # Récupérer la liste des joueurs vivants
+        # Retrieve the list of living players
         players = []
         for i in range(self.players_list_widget.count()):
             item = self.players_list_widget.item(i)
             if item and not "(mort)" in item.text():
-                players.append(item.text().split(" (")[0])  # Ne garder que le nom sans le rôle
+                players.append(item.text().split(" (")[0])  # Keep only the name without the role
         
-        # Vérifier si la liste n'est pas vide
+        # Check that the list is not empty
         if not players:
             QMessageBox.warning(self, "Action impossible", "No player available to poison.")
             return
@@ -923,7 +923,7 @@ class WerewolfClient(QMainWindow):
             self.witch_kill_player(target)
     
     def show_seer_dialog(self):
-        # Récupérer la liste des joueurs vivants
+        # Retrieve the list of living players
         players = []
         
         print(f"DEBUG - Construire la liste des joueurs pour la voyante")
@@ -943,17 +943,17 @@ class WerewolfClient(QMainWindow):
                 else:
                     print(f"DEBUG - Exclu de la liste: '{player_name}'")
         
-        # Si aucun joueur n'est trouvé, essayer une recherche moins stricte
+        # If no player is found, try a less strict search
         if not players:
             print("DEBUG - Aucun joueur trouvé, essayons une méthode alternative")
-            # Méthode alternative: inclure tous les joueurs sauf soi-même
+            # Alternative method: include all players except yourself
             for i in range(self.players_list_widget.count()):
                 item = self.players_list_widget.item(i)
                 if item and item.text() != self.username:
                     players.append(item.text())
                     print(f"DEBUG - Ajouté (méthode alt): '{item.text()}'")
         
-        # Vérifier si la liste n'est pas vide
+        # Check that the list is not empty
         if not players:
             print("DEBUG - Liste des joueurs vide pour la voyante!")
             QMessageBox.warning(self, "Action impossible", "No player available to inspect.")
@@ -967,14 +967,14 @@ class WerewolfClient(QMainWindow):
             self.seer_examine_player(target)
     
     def show_hunter_dialog(self):
-        # Récupérer la liste des joueurs vivants
+        # Retrieve the list of living players
         players = []
         for i in range(self.players_list_widget.count()):
             item = self.players_list_widget.item(i)
             if item and not "(mort)" in item.text():
-                players.append(item.text().split(" (")[0])  # Ne garder que le nom sans le rôle
+                players.append(item.text().split(" (")[0])  # Keep only the name without the role
         
-        # Vérifier si la liste n'est pas vide
+        # Check that the list is not empty
         if not players:
             QMessageBox.warning(self, "Action impossible", "No player available to shoot.")
             return
@@ -1088,40 +1088,40 @@ class WerewolfClient(QMainWindow):
         self.command_input.setEnabled(enabled)
 
     def add_chat_message(self, msg_type, message, color="#ffffff"):
-        """Ajoute un message au chat avec formatage HTML"""
+        """Add a message to the chat with HTML formatting"""
         timestamp = QDateTime.currentDateTime().toString("hh:mm:ss")
         self.chat_display.append(f'<span style="color: #a4b0be;">[{timestamp}]</span> <span style="color: {color}; font-weight: bold;">[{msg_type}]</span> {message}')
         self.chat_display.verticalScrollBar().setValue(self.chat_display.verticalScrollBar().maximum())
         
     def add_to_log(self, msg_type, message, color="#ffffff"):
-        """Ajoute une entrée au journal des événements"""
+        """Add an entry to the event log"""
         timestamp = QDateTime.currentDateTime().toString("dd/MM hh:mm:ss")
         self.log_display.append(f'<span style="color: #a4b0be;">[{timestamp}]</span> <span style="color: {color}; font-weight: bold;">[{msg_type}]</span> {message}')
         self.log_display.verticalScrollBar().setValue(self.log_display.verticalScrollBar().maximum())
     
     def add_to_command_history(self, command):
-        """Ajoute une commande à l'historique du terminal"""
+        """Add a command to the terminal history"""
         timestamp = QDateTime.currentDateTime().toString("hh:mm:ss")
         self.cmd_history.append(f'<span style="color: #a4b0be;">[{timestamp}]</span> <span style="color: #2ed573;">{command}</span>')
         self.cmd_history.verticalScrollBar().setValue(self.cmd_history.verticalScrollBar().maximum())
     
     def filter_log(self, filter_type):
         """Filtre les entrées du journal selon le type"""
-        # Cette fonctionnalité pourrait être implémentée ultérieurement
+        # This feature could be implemented later
         pass
     
     def update_buttons_visibility(self):
         """Met à jour la visibilité des boutons en fonction de l'état du jeu et du rôle"""
-        is_alive = True  # À améliorer plus tard avec un statut réel
+        is_alive = True  # To improve later with a real status
         
-        # Boutons de vote du jour
+        # Day voting buttons
         self.vote_btn.setVisible(self.game_state == "day" and is_alive)
         
-        # Boutons d'action de nuit selon le rôle
+        # Night action buttons depending on the role
         self.night_vote_btn.setVisible(self.game_state == "night" and is_alive and 
                                        self.player_role in ["werewolf", "voyante", "sorcière", "chasseur"])
         
-        # Mise à jour du label de rôle avec une icône
+        # Update the role label with an icon
         role_icons = {
             "werewolf": "🐺",
             "villager": "👨‍🌾", 
@@ -1134,13 +1134,13 @@ class WerewolfClient(QMainWindow):
             self.role_label.setText(f"{role_icons[self.player_role]} {self.player_role}")
 
     def check_auto_popups(self):
-        """Affiche automatiquement les popups appropriés selon l'état du jeu et le rôle"""
-        # Les popups sont maintenant gérés directement par les signaux du serveur
-        # et ne s'affichent que lorsqu'on reçoit les signaux spécifiques
+        """Automatically display appropriate popups based on game state and role"""
+        # Popups are now managed directly by server signals
+        # and are only shown when specific signals are received
         # SEER_ACTION, WITCH_ACTION, HUNTER_SHOOT, etc.
         pass
     def closeEvent(self, event):
-        """Gère la fermeture propre de l'application"""
+        """Handle clean application shutdown"""
         reply = QMessageBox.question(self, 'Confirmation',
                                      'Are you sure you want to quit?',
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)

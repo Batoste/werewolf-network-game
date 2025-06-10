@@ -13,52 +13,52 @@ def assign_roles():
     Assign roles to players in the game.
     Balance roles based on the number of players, following standard werewolf game distributions.
     
-    Distribution optimale:
-    - 6 joueurs  : 1 loup-garou, 1 voyante, 1 sorcière, 3 villageois
-    - 8 joueurs  : 2 loups-garous, 1 voyante, 1 sorcière, 1 chasseur, 3 villageois
-    - 10 joueurs : 2 loups-garous, 1 voyante, 1 sorcière, 1 chasseur, 5 villageois
-    - 12 joueurs : 3 loups-garous, 1 voyante, 1 sorcière, 1 chasseur, 6 villageois
-    - 14 joueurs : 4 loups-garous, 1 voyante, 1 sorcière, 1 chasseur, 7 villageois
-    - 16+ joueurs: environ 1/4 de loups-garous, tous les rôles spéciaux, reste villageois
+    Optimal distribution:
+    - 6 players  : 1 werewolf, 1 seer, 1 witch, 3 villagers
+    - 8 players  : 2 werewolves, 1 seer, 1 witch, 1 hunter, 3 villagers
+    - 10 players : 2 werewolves, 1 seer, 1 witch, 1 hunter, 5 villagers
+    - 12 players : 3 werewolves, 1 seer, 1 witch, 1 hunter, 6 villagers
+    - 14 players : 4 werewolves, 1 seer, 1 witch, 1 hunter, 7 villagers
+    - 16+ players: about 1/4 werewolves, all special roles, remaining villagers
     """
     num_players = len(state.clients)
     roles = []
     
-    # Optimiser la répartition des loups-garous selon le nombre de joueurs
+    # Optimize werewolf distribution based on player count
     if num_players <= 6:
-        # 1 loup-garou pour 6 joueurs ou moins
+        # 1 werewolf for 6 or fewer players
         roles.append("werewolf")
     elif num_players <= 9:
-        # 2 loups-garous pour 7-9 joueurs
+        # 2 werewolves for 7-9 players
         roles.extend(["werewolf", "werewolf"])
     elif num_players <= 12:
-        # 3 loups-garous pour 10-12 joueurs
+        # 3 werewolves for 10-12 players
         roles.extend(["werewolf", "werewolf", "werewolf"])
     elif num_players <= 15:
-        # 4 loups-garous pour 13-15 joueurs
+        # 4 werewolves for 13-15 players
         roles.extend(["werewolf", "werewolf", "werewolf", "werewolf"])
     else:
-        # Pour 16+ joueurs: environ 1/4 des joueurs sont des loups-garous
+        # For 16+ players: about 1/4 are werewolves
         wolf_count = max(4, num_players // 4)
         roles.extend(["werewolf"] * wolf_count)
     
-    # Ajouter les rôles spéciaux selon le nombre de joueurs
+    # Add special roles based on player count
     if num_players >= 5:
-        roles.append("voyante")  # La voyante est toujours incluse à partir de 5 joueurs
+        roles.append("voyante")  # Include the seer starting at 5 players
     
     if num_players >= 6:
-        roles.append("sorcière")  # La sorcière est ajoutée à partir de 6 joueurs
+        roles.append("sorcière")  # Add the witch starting at 6 players
     
     if num_players >= 7:
-        roles.append("chasseur")  # Le chasseur est ajouté à partir de 7 joueurs
+        roles.append("chasseur")  # Add the hunter starting at 7 players
     
-    # Compléter avec des villageois
+    # Fill with villagers
     roles += ["villager"] * max(0, num_players - len(roles))
     
-    # Mélanger les rôles pour une distribution aléatoire
+    # Shuffle roles for random distribution
     random.shuffle(roles)
     
-    # Distribuer les rôles et notifier les joueurs
+    # Distribute roles and notify players
     for conn, role in zip(state.clients, roles):
         state.players[conn] = {
             "name": state.usernames[conn],
@@ -68,16 +68,16 @@ def assign_roles():
         msg = encode_message("ROLE", role) + "\n"
         conn.sendall(msg.encode())
         time.sleep(0.1)
-      # Logging des statistiques de distribution des rôles
+      # Log role distribution stats
     role_counts = {}
     for conn in state.players:
         role = state.players[conn]["role"]
         if role not in role_counts:
             role_counts[role] = 0
         role_counts[role] += 1
-      # Envoyer la distribution des rôles à tous les joueurs
+      # Send role distribution to all players
     distribution_list = [f"{count} {role}" for role, count in role_counts.items()]
-    # Formater le message pour une meilleure lisibilité
+    # Format the message for readability
     if "werewolf" in role_counts:
         wolf_count = role_counts["werewolf"]
         wolf_word = "werewolf" if wolf_count == 1 else "werewolves"
@@ -116,7 +116,7 @@ def change_state(new_state):
     state.votes.clear()
     broadcast(None, encode_message("STATE", new_state))
     if new_state == "night":
-        # Envoyer un message aux joueurs normaux pour qu'ils sachent qu'ils doivent attendre
+        # Notify normal players to wait during the night
         for conn, p in state.players.items():
             if p["alive"] and p["role"] not in ["voyante", "werewolf", "sorcière", "chasseur"]:
                 msg = encode_message("MSG", "Night falls... you fall asleep while others act in the shadows.") + "\n"
@@ -124,14 +124,14 @@ def change_state(new_state):
                     conn.sendall(msg.encode())
                 except:
                     pass
-        # Au début de la nuit, déclencher uniquement la voyante
-        # Les autres actions seront déclenchées en séquence après que chaque rôle ait terminé
+        # At the start of night, trigger only the seer
+        # Other actions occur sequentially after each role finishes
         time.sleep(3)
         
-        # 1. Voyante (peut examiner n'importe qui)
+        # 1. Seer (can inspect anyone)
         print("[GAME] Starting night sequence with seer phase")
         
-        # Vérifier s'il y a une voyante vivante
+        # Check if a living seer exists
         seer_exists = False
         for conn, p in state.players.items():
             if p["role"] == "voyante" and p["alive"]:
@@ -141,13 +141,13 @@ def change_state(new_state):
         if seer_exists:
             trigger_seer_phase()
         else:
-            # S'il n'y a pas de voyante, passer directement à la phase des loups-garous
+            # If no seer, skip directly to the werewolf phase
             print("[GAME] No living seer, skipping to werewolf phase")
             time.sleep(2)
             werewolf_night_phase()
             
-        # Les phases suivantes sont déclenchées après la fin de l'action de la voyante
-        # dans la fonction handle_seer_choice
+        # The following phases trigger after the seer action completes
+        # in handle_seer_choice
 
 
 def trigger_seer_phase():
@@ -164,8 +164,8 @@ def handle_seer_choice(conn, target_name):
             conn.sendall(encode_message("SEER_RESULT", result).encode())
             print(f"[GAME] Seer {state.usernames[conn]} examined {target_name} (role: {p['role']})")
             
-            # Maintenant que la voyante a fini son action, déclencher l'action des loups-garous
-            time.sleep(2)  # Petit délai pour s'assurer que le client a le temps de traiter la réponse
+            # Now that the seer finished, trigger the werewolf action
+            time.sleep(2)  # Small delay so the client has time to process the response
             print("[GAME] Seer action completed, starting werewolf phase")
             werewolf_night_phase()
             break
@@ -220,19 +220,19 @@ def kill_player(conn):
 
 def handle_hunter_death(conn):
     """
-    Permet au chasseur de tirer sur quelqu’un à sa mort.
+    Allows the hunter to shoot someone upon death.
     """
     conn.sendall(encode_message("HUNTER_SHOOT", "") + "\n")
 
 
 def check_end_game():
     """
-    Vérifie si le jeu est terminé.
+    Check if the game is over.
     """
     werewolves = [p for p in state.players.values() if p["role"] == "werewolf" and p["alive"]]
     villagers = [p for p in state.players.values() if p["role"] != "werewolf" and p["alive"]]
 
-    # Détails sur les joueurs restants pour le message de fin
+    # Details about remaining players for the end message
     werewolf_names = ", ".join([p["name"] for p in state.players.values() if p["role"] == "werewolf"])
     special_roles = ", ".join([f"{p['name']} ({p['role']})" for p in state.players.values() 
                                if p["role"] not in ["werewolf", "villager"]])
@@ -241,7 +241,7 @@ def check_end_game():
         state.set_game_state("end")
         broadcast(None, encode_message("STATE", "villagers_win") + "\n")
         
-        # Message détaillé sur les loups-garous qui étaient dans la partie
+        # Detailed message listing the werewolves in the game
         win_msg = f"Villagers have won! The werewolves ({werewolf_names}) were eliminated."
         if special_roles:
             win_msg += f"\nSpecial roles: {special_roles}"
@@ -251,7 +251,7 @@ def check_end_game():
         state.set_game_state("end")
         broadcast(None, encode_message("STATE", "werewolves_win") + "\n")
         
-        # Message détaillé sur les loups-garous qui ont gagné
+        # Detailed message for the winning werewolves
         win_msg = f"Werewolves ({werewolf_names}) have won! They now outnumber the villagers."
         if special_roles:
             win_msg += f"\nSpecial roles that failed to stop them: {special_roles}"
@@ -264,7 +264,7 @@ def werewolf_night_phase():
     """
     werewolves = [conn for conn, p in state.players.items() if p["role"] == "werewolf" and p["alive"]]
     
-    # S'assurer que la liste des loups-garous vivants n'est pas vide
+    # Ensure the living werewolves list is not empty
     if not werewolves:
         print("[GAME] No living werewolves to take action")
         return
@@ -276,9 +276,9 @@ def werewolf_night_phase():
         msg = encode_message("STATE", "You are the only werewolf. Choose a victim with /nvote <name>") + "\n"
         try:
             conn.sendall(msg.encode())
-            # Pause courte pour s'assurer que les messages sont envoyés dans le bon ordre
+            # Short pause to ensure messages are sent in order
             time.sleep(1)
-            # Envoyer un message spécifique pour déclencher la popup
+            # Send a specific message to trigger the popup
             msg_action = encode_message("WEREWOLF_ACTION", "") + "\n"
             conn.sendall(msg_action.encode())
             print(f"[GAME] Sent werewolf action to {state.usernames.get(conn, 'unknown')}")
@@ -289,9 +289,9 @@ def werewolf_night_phase():
         for conn in werewolves:
             try:
                 conn.sendall(msg.encode())
-                # Pause courte pour s'assurer que les messages sont envoyés dans le bon ordre
+                # Short pause to ensure messages are sent in order
                 time.sleep(1)
-                # Envoyer un message spécifique pour déclencher la popup
+                # Send a specific message to trigger the popup
                 msg_action = encode_message("WEREWOLF_ACTION", "") + "\n"
                 conn.sendall(msg_action.encode())
                 print(f"[GAME] Sent werewolf action to {state.usernames.get(conn, 'unknown')}")
