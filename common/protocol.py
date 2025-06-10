@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class MessageType(Enum):
     JOIN = "JOIN"
     MSG = "MSG"
@@ -18,10 +17,8 @@ class MessageType(Enum):
     HUNTER_SHOOT = "HUNTER_SHOOT"
     ROLE_DISTRIBUTION = "ROLE_DISTRIBUTION"
 
-
 def encode_message(msg_type, payload):
     return f"{msg_type}|{payload}\n"
-
 
 def decode_message(raw_msg):
     try:
@@ -30,4 +27,39 @@ def decode_message(raw_msg):
     except ValueError:
         return "", raw_msg
 
+# --- ADDED FOR THE SEER ---
+def trigger_seer_phase(players):
+    for conn, info in players.items():
+        if info.get("role") == "voyante" and info.get("alive", True):
+            try:
+                msg = encode_message("SEER_ACTION", "")
+                conn.sendall(msg.encode())
+            except:
+                pass
 
+# --- ADDED FOR THE SEER RESPONSE ---
+def handle_seer_choice(players, seer_name, target_name):
+    target_info = None
+    for name, info in players.items():
+        if name == target_name:
+            target_info = info
+            break
+    if target_info:
+        result = f"{target_name}:{target_info.get('role', '?')}"
+        for name, info in players.items():
+            if name == seer_name and info.get("role") == "voyante":
+                try:
+                    msg = encode_message("SEER_RESULT", result)
+                    info["conn"].sendall(msg.encode())
+                except:
+                    pass
+
+# --- ADDED FOR THE HUNTER ---
+def handle_hunter_death(players, hunter_name):
+    for name, info in players.items():
+        if name == hunter_name and info.get("role") == "chasseur":
+            try:
+                msg = encode_message("HUNTER_SHOOT", "")
+                info["conn"].sendall(msg.encode())
+            except:
+                pass
