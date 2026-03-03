@@ -54,4 +54,5 @@ A multiplayer network game inspired by the classic party game "Werewolf," allowi
 
 ## Authors
 
-- Noe Crn - Initial development and design
+- Noe Crn 
+- Baptiste Rio 
